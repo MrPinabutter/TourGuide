@@ -18,7 +18,7 @@ services:
       - DATABASE_PORT=5432
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=nestjs
+      - DATABASE_NAME=tourguide
       - NODE_ENV=development
     depends_on:
       - postgres
@@ -29,7 +29,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: nestjs
+      POSTGRES_DB: tourguide
     ports:
       - '5432:5432'
     volumes:
