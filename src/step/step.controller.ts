@@ -10,12 +10,17 @@ import {
 } from '@nestjs/common';
 import { Prisma } from 'generated/prisma';
 import { StepService } from './step.service';
+import { ApiBody } from '@nestjs/swagger';
 
 @Controller('step')
 export class StepController {
   constructor(private readonly stepService: StepService) {}
 
   @Post()
+  @ApiBody({
+    description: 'Step data to create',
+    type: Object,
+  })
   create(@Body() body: Prisma.StepCreateInput) {
     return this.stepService.create(body);
   }
@@ -43,6 +48,10 @@ export class StepController {
   }
 
   @Patch(':id')
+  @ApiBody({
+    description: 'Step data to create',
+    type: Object,
+  })
   update(@Param('id') id: string, @Body() body: Prisma.StepUpdateInput) {
     return this.stepService.update(+id, body);
   }

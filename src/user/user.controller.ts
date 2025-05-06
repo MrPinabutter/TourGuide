@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Prisma } from 'generated/prisma';
+import { ApiBody } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
@@ -43,6 +44,10 @@ export class UserController {
   }
 
   @Post()
+  @ApiBody({
+    description: 'User data to create',
+    type: Object,
+  })
   async createUser(@Body() user: Prisma.UserCreateInput) {
     return this.userService.createUser(user);
   }

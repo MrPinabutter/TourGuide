@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { TripService } from './trip.service';
 import { Prisma } from 'generated/prisma';
+import { ApiBody } from '@nestjs/swagger';
 
 @Controller('trip')
 export class TripController {
@@ -32,6 +33,10 @@ export class TripController {
   }
 
   @Post()
+  @ApiBody({
+    description: 'Trip data to create',
+    type: Object,
+  })
   createTrip(@Body() body: Prisma.TripCreateInput) {
     return this.tripService.createTrip(body);
   }
