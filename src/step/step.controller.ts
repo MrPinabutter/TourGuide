@@ -60,4 +60,25 @@ export class StepController {
   remove(@Param('id') id: string) {
     return this.stepService.remove(+id);
   }
+
+  @Post(':id/comment')
+  addComment(@Param('id') id: number, @Body('text') text: string) {
+    return this.stepService.addComment({
+      id,
+      text,
+    });
+  }
+
+  @Patch('/comment/:id') // Move for another resource
+  updateComment(@Param('id') id: number, @Body('text') text: string) {
+    return this.stepService.updateComment({
+      id,
+      text,
+    });
+  }
+
+  @Delete('/comment/:id')
+  deleteComment(@Param(':id') id: number) {
+    return this.stepService.deleteComment(id);
+  }
 }

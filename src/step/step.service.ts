@@ -23,22 +23,36 @@ export class StepService {
       take,
       skip,
       cursor,
+      include: {
+        _count: {
+          select: {
+            comments: {
+              where: {
+                isDeleted: false,
+              },
+            },
+          },
+        },
+      },
       where,
       orderBy,
     });
   }
 
   async findOne(id: number) {
-    return this.prisma.step.findUnique({
+    const response = await this.prisma.step.findUnique({
       where: { id },
       include: {
-        _count: {
-          select: {
-            comments: true,
-          },
-        },
+        comments: true,
       },
     });
+
+    return {
+      ...response,
+      comments: response.comments.map((it) =>
+        it.isDeleted ? { ...it, text: '[DELETED]' } : it,
+      ),
+    };
   }
 
   async update(id: number, step: Prisma.StepUpdateInput) {
@@ -51,6 +65,43 @@ export class StepService {
   async remove(id: number) {
     return this.prisma.step.delete({
       where: { id },
+    });
+  }
+
+  async addComment({ id, text }: { id: number; text: string }) {
+    return this.prisma.comment.create({
+      data: {
+        text,
+        user: {
+          connect: {
+            username: 'vitor', // get user from login
+          },
+        },
+        step: {
+          connect: { id },
+        },
+      },
+    });
+  }
+
+  async updateComment({ id, text }: { id: number; text: string }) {
+    return this.prisma.comment.update({
+      where: { id },
+      data: {
+        text,
+        isEdited: true,
+      },
+    });
+  }
+
+  async deleteComment(id: number) {
+    return this.prisma.comment.update({
+      where: {
+        id,
+      },
+      data: {
+        isDeleted: true,
+      },
     });
   }
 }
