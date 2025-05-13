@@ -9,12 +9,18 @@ import {
   Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma, User } from 'generated/prisma';
 import { ApiBody } from '@nestjs/swagger';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('profile')
+  async getProfile(@CurrentUser() user: User) {
+    this.userService.getProfile(user);
+  }
 
   @Get(':id')
   async getUserById(@Param('id') id: number) {
