@@ -5,7 +5,9 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
+  Req,
 } from '@nestjs/common';
 import { TripService } from './trip.service';
 import { Prisma } from 'generated/prisma';
@@ -42,7 +44,20 @@ export class TripController {
   }
 
   @Delete(':id')
-  deleteTrip(@Param('id') id: string) {
-    return this.tripService.deleteTrip(id);
+  deleteTrip(@Param('id') id: number, @Req() req) {
+    return this.tripService.deleteTrip({ id, user: req.user });
+  }
+
+  @Put(':id')
+  @ApiBody({
+    description: 'Trip data to update',
+    type: Object,
+  })
+  updateTrip(
+    @Param('id') id: number,
+    @Body() data: Prisma.TripUpdateInput,
+    @Req() req,
+  ) {
+    return this.tripService.updateTrip({ id, data, user: req.user });
   }
 }

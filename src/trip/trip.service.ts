@@ -28,14 +28,56 @@ export class TripService {
   }
 
   async updateTrip(params: {
-    where: Prisma.TripWhereUniqueInput;
+    id: number;
     data: Prisma.TripUpdateInput;
+    user: { id: number; role: string };
   }): Promise<Trip> {
-    const { where, data } = params;
-    return this.prisma.trip.update({ where, data });
+    const { id, data, user } = params;
+
+    const tripMember = await this.prisma.tripMember.findFirst({
+      where: {
+        tripId: id,
+        userId: params.user.id,
+      },
+    });
+
+    const isSuperAdmin = user?.role === 'ADMIN';
+
+    if (!tripMember && !isSuperAdmin) {
+      throw new Error('You are not a member of this trip');
+    }
+
+    if (!['CREATOR', 'ADMIN'].includes(tripMember.role) && !isSuperAdmin) {
+      throw new Error('You do not have permission to update this trip');
+    }
+
+    return this.prisma.trip.update({ where: { id }, data });
   }
 
-  async deleteTrip(id: string): Promise<Trip> {
+  async deleteTrip({
+    id,
+    user,
+  }: {
+    id: number;
+    user: { id: number; role: string };
+  }): Promise<Trip> {
+    const tripMember = await this.prisma.tripMember.findFirst({
+      where: {
+        tripId: id,
+        userId: user.id,
+      },
+    });
+
+    const isSuperAdmin = user.role === 'ADMIN';
+
+    if (!tripMember && !isSuperAdmin) {
+      throw new Error('You are not a member of this trip');
+    }
+
+    if (!['CREATOR'].includes(tripMember.role) && !isSuperAdmin) {
+      throw new Error('You do not have permission to delete this trip');
+    }
+
     return this.prisma.trip.delete({
       where: { id: +id },
     });
