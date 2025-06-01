@@ -66,6 +66,7 @@ export class UserService {
       data: user,
     });
   }
+
   async updateUser(id: number, name: string) {
     return this.prisma.user.update({
       where: { id },
