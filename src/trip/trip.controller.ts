@@ -12,6 +12,7 @@ import {
 import { TripService } from './trip.service';
 import { Prisma } from 'generated/prisma';
 import { ApiBody } from '@nestjs/swagger';
+import { CreateTripDto } from './dto/trip';
 
 @Controller('trip')
 export class TripController {
@@ -22,12 +23,25 @@ export class TripController {
   }
 
   @Get()
-  async getTrips(
+  async getMyTrips(
     @Query('orderBy') orderBy = 'createdAt',
     @Query('skip') skip = 0,
     @Query('take') take = 10,
   ) {
-    return this.tripService.getTrips({
+    return this.tripService.getMyTrips({
+      orderBy: { [orderBy]: 'desc' },
+      skip,
+      take,
+    });
+  }
+
+  @Get('public')
+  async getPublicTrips(
+    @Query('orderBy') orderBy = 'createdAt',
+    @Query('skip') skip = 0,
+    @Query('take') take = 10,
+  ) {
+    return this.tripService.getPublicTrips({
       orderBy: { [orderBy]: 'desc' },
       skip,
       take,
@@ -39,8 +53,8 @@ export class TripController {
     description: 'Trip data to create',
     type: Object,
   })
-  createTrip(@Body() body: Prisma.TripCreateInput) {
-    return this.tripService.createTrip(body);
+  createTrip(@Body() body: CreateTripDto, @Req() req) {
+    return this.tripService.createTrip({ data: body, user: req.user });
   }
 
   @Delete(':id')

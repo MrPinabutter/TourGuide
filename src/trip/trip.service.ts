@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Trip, Prisma } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
+import { CreateTripDto } from './dto/trip';
 
 @Injectable()
 export class TripService {
@@ -12,7 +13,42 @@ export class TripService {
     });
   }
 
-  async getTrips(params: {
+  async getMyTrips(params: {
+    skip?: number;
+    take?: number;
+    cursor?: Prisma.TripWhereUniqueInput;
+    where?: Prisma.TripWhereInput;
+    orderBy?: Prisma.TripOrderByWithRelationInput;
+    user?: { id: number; role: string };
+  }): Promise<Trip[]> {
+    const { skip, take, cursor, where, orderBy } = params;
+
+    const whereCondition: Prisma.TripWhereInput = {
+      ...where,
+      TripMember: {
+        some: {
+          userId: params.user?.id,
+          role: {
+            in: ['CREATOR', 'ADMIN', 'MEMBER'],
+          },
+        },
+      },
+    };
+
+    return this.prisma.trip.findMany({
+      skip,
+      take,
+      cursor,
+      where: whereCondition,
+      orderBy,
+      include: {
+        TripMember: true,
+        steps: true,
+      },
+    });
+  }
+
+  async getPublicTrips(params: {
     skip?: number;
     take?: number;
     cursor?: Prisma.TripWhereUniqueInput;
@@ -20,11 +56,72 @@ export class TripService {
     orderBy?: Prisma.TripOrderByWithRelationInput;
   }): Promise<Trip[]> {
     const { skip, take, cursor, where, orderBy } = params;
-    return this.prisma.trip.findMany({ skip, take, cursor, where, orderBy });
+    const publicWhere: Prisma.TripWhereInput = {
+      ...where,
+      visibility: 'PUBLIC',
+      AND: [
+        {
+          TripMember: {
+            some: { role: { in: ['CREATOR'] } },
+          },
+        },
+        { visibility: 'FRIENDS_ONLY' },
+      ],
+    };
+
+    return this.prisma.trip.findMany({
+      skip,
+      take,
+      cursor,
+      where: publicWhere,
+      orderBy,
+    });
   }
 
-  async createTrip(data: Prisma.TripCreateInput): Promise<Trip> {
-    return this.prisma.trip.create({ data });
+  async createTrip({
+    data,
+    user,
+  }: {
+    data: CreateTripDto;
+    user: { id: number | string; role: string };
+  }): Promise<Trip> {
+    const newTrip = {
+      name: data.name,
+      coverPhoto: data.coverPhoto,
+      description: data.description,
+      steps: {
+        create:
+          data.steps?.map((step) => ({
+            name: step.name,
+            description: step.description,
+            order: step.order,
+            startDateTime: step.startDateTime,
+            endDateTime: step.endDateTime,
+            creator: {
+              connect: {
+                id: user.id,
+              },
+            },
+            latitude: step.latitude,
+            longitude: step.longitude,
+          })) || [],
+      },
+      visibility: data.visibility || 'PUBLIC',
+      TripMember: {
+        create: {
+          userId: user.id,
+          role: 'CREATOR',
+        },
+      },
+    } as Prisma.TripCreateInput;
+
+    return this.prisma.trip.create({
+      data: newTrip,
+      include: {
+        TripMember: true,
+        steps: true,
+      },
+    });
   }
 
   async updateTrip(params: {
