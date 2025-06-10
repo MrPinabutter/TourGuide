@@ -7,10 +7,38 @@ import { CreateTripDto } from './dto/trip';
 export class TripService {
   constructor(private prisma: PrismaService) {}
 
-  async getTrip(id: string): Promise<Trip | null> {
-    return this.prisma.trip.findUnique({
+  async getTrip({
+    id,
+    user,
+  }: {
+    id: string;
+    user: { id: number; role: string };
+  }): Promise<Trip | null> {
+    if (!id) {
+      throw new Error('Trip ID is required');
+    }
+
+    const trip = await this.prisma.trip.findUnique({
       where: { id: +id },
+      include: {
+        TripMember: true,
+        steps: true,
+      },
     });
+
+    if (trip.visibility === 'PRIVATE') {
+      const tripMember = trip?.TripMember.find(
+        (member) => member.userId === user.id,
+      );
+
+      if (!tripMember) {
+        throw new Error('You are not a member of this trip');
+      }
+    }
+
+    //TODO: handle friends-only visibility
+
+    return trip;
   }
 
   async getMyTrips(params: {
@@ -59,15 +87,9 @@ export class TripService {
     const publicWhere: Prisma.TripWhereInput = {
       ...where,
       visibility: 'PUBLIC',
-      AND: [
-        {
-          TripMember: {
-            some: { role: { in: ['CREATOR'] } },
-          },
-        },
-        { visibility: 'FRIENDS_ONLY' },
-      ],
     };
+
+    // TODO: handle friends-only visibility
 
     return this.prisma.trip.findMany({
       skip,

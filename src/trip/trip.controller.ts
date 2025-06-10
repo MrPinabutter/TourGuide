@@ -18,8 +18,8 @@ import { CreateTripDto } from './dto/trip';
 export class TripController {
   constructor(private readonly tripService: TripService) {}
   @Get(':id')
-  async getTrip(@Param('id') id: string) {
-    return this.tripService.getTrip(id);
+  async getTrip(@Param('id') id: string, @Req() req) {
+    return this.tripService.getTrip({ id, user: req.user });
   }
 
   @Get()
@@ -51,7 +51,7 @@ export class TripController {
   @Post()
   @ApiBody({
     description: 'Trip data to create',
-    type: Object,
+    type: CreateTripDto,
   })
   createTrip(@Body() body: CreateTripDto, @Req() req) {
     return this.tripService.createTrip({ data: body, user: req.user });
