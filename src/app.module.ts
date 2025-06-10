@@ -7,9 +7,10 @@ import { StepModule } from './step/step.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
+import { FriendshipModule } from './friendship/friendship.module';
 
 @Module({
-  imports: [TripModule, UserModule, StepModule, AuthModule],
+  imports: [TripModule, UserModule, StepModule, FriendshipModule, AuthModule],
   controllers: [AppController],
   providers: [
     AppService,
