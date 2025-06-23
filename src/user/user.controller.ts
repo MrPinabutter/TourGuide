@@ -8,10 +8,10 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { UserService } from './user.service';
-import { Prisma, User } from 'generated/prisma';
 import { ApiBody } from '@nestjs/swagger';
+import { Prisma, User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
@@ -23,8 +23,8 @@ export class UserController {
   }
 
   @Get(':id')
-  async getUserById(@Param('id') id: number) {
-    return this.userService.getUserById(id);
+  async getUserById(@Param('id') id: number, @CurrentUser() user: User) {
+    return this.userService.getUserById({ id, user });
   }
 
   @Get()
@@ -59,12 +59,16 @@ export class UserController {
   }
 
   @Put(':id')
-  async updateUser(@Param('id') id: number, @Body('name') name: string) {
-    return this.userService.updateUser(id, name);
+  async updateUser(
+    @Param('id') id: number,
+    @Body('name') name: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.userService.updateUser({ id, name, user });
   }
 
   @Delete(':id')
-  async deleteUser(@Param('id') id: number) {
-    return this.userService.deleteUser(id);
+  async deleteUser(@Param('id') id: number, @CurrentUser() user: User) {
+    return this.userService.deleteUser({ id, user });
   }
 }

@@ -7,19 +7,19 @@ import {
   Post,
   Put,
   Query,
-  Req,
 } from '@nestjs/common';
-import { TripService } from './trip.service';
-import { Prisma } from 'generated/prisma';
 import { ApiBody } from '@nestjs/swagger';
+import { Prisma, User } from 'generated/prisma';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { CreateTripDto } from './dto/trip';
+import { TripService } from './trip.service';
 
 @Controller('trip')
 export class TripController {
   constructor(private readonly tripService: TripService) {}
   @Get(':id')
-  async getTrip(@Param('id') id: string, @Req() req) {
-    return this.tripService.getTrip({ id, user: req.user });
+  async getTrip(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.tripService.getTrip({ id, user });
   }
 
   @Get()
@@ -53,13 +53,13 @@ export class TripController {
     description: 'Trip data to create',
     type: CreateTripDto,
   })
-  createTrip(@Body() body: CreateTripDto, @Req() req) {
-    return this.tripService.createTrip({ data: body, user: req.user });
+  createTrip(@Body() body: CreateTripDto, @CurrentUser() user: User) {
+    return this.tripService.createTrip({ data: body, user });
   }
 
   @Delete(':id')
-  deleteTrip(@Param('id') id: number, @Req() req) {
-    return this.tripService.deleteTrip({ id, user: req.user });
+  deleteTrip(@Param('id') id: number, @CurrentUser() user: User) {
+    return this.tripService.deleteTrip({ id, user });
   }
 
   @Put(':id')
@@ -70,8 +70,9 @@ export class TripController {
   updateTrip(
     @Param('id') id: number,
     @Body() data: Prisma.TripUpdateInput,
-    @Req() req,
+
+    @CurrentUser() user: User,
   ) {
-    return this.tripService.updateTrip({ id, data, user: req.user });
+    return this.tripService.updateTrip({ id, data, user });
   }
 }

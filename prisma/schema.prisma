@@ -8,29 +8,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  name     String?
-  password String?
-  username String  @unique
-
-  role UserRole @default(USER)
-
-  googleId     String? @unique
-  refreshToken String?
-
-  TripMember TripMember[]
-
-  isActive Boolean @default(true)
-
-  sentFriendRequests     Friendship[] @relation("userFriendships")
-  receivedFriendRequests Friendship[] @relation("friendUserFriendships")
-  comments               Comment[]
-  Step                   Step[]
-
-  @@index([email])
-  @@index([username])
+enum UserVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 enum MemberRole {
@@ -55,6 +35,35 @@ enum TripVisibility {
   PUBLIC
   PRIVATE
   FRIENDS_ONLY
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  name     String?
+  password String?
+  username String  @unique
+
+  role UserRole @default(USER)
+
+  googleId     String? @unique
+  refreshToken String?
+
+  TripMember TripMember[]
+
+  isActive Boolean @default(true)
+
+  sentFriendRequests     Friendship[] @relation("userFriendships")
+  receivedFriendRequests Friendship[] @relation("friendUserFriendships")
+  comments               Comment[]
+  Step                   Step[]
+
+  visibility UserVisibility @default(PUBLIC)
+
+  deletedAt DateTime?
+
+  @@index([email])
+  @@index([username])
 }
 
 model Friendship {
