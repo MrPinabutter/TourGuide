@@ -8,13 +8,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Prisma, User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { CreateTripDto } from './dto/trip';
 import { TripService } from './trip.service';
 
 @Controller('trip')
+@ApiBearerAuth('access-token')
 export class TripController {
   constructor(private readonly tripService: TripService) {}
   @Get(':id')

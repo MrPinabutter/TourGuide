@@ -10,6 +10,16 @@ async function bootstrap() {
     .setDescription('The tour-guide API description')
     .setVersion('1.0')
     .addTag('tour')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+        description: 'Enter your JWT token here (e.g., Bearer <token>)',
+      },
+      'access-token',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

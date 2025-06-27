@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { Prisma } from 'generated/prisma';
 import { StepService } from './step.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
 @Controller('step')
+@ApiBearerAuth('access-token')
 export class StepController {
   constructor(private readonly stepService: StepService) {}
 

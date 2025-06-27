@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Req } from '@nestjs/common';
 import { FriendshipService } from './friendship.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('friendship')
+@ApiBearerAuth('access-token')
 export class FriendshipController {
   constructor(private readonly userService: FriendshipService) {}
   @Get()
