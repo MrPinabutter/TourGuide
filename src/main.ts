@@ -1,6 +1,12 @@
-import { NestFactory } from '@nestjs/core';
+import {
+  BadRequestException,
+  HttpStatus,
+  ValidationPipe,
+} from '@nestjs/common';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { PrismaClientExceptionFilter } from './prisma-client-exception/prisma-client-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +30,33 @@ async function bootstrap() {
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      errorHttpStatusCode: 422,
+      exceptionFactory: (errors) => {
+        const result = errors.map((error) => ({
+          property: error.property,
+          value: error.value,
+          constraints: error.constraints,
+        }));
+
+        return new BadRequestException({
+          message: 'Validation failed',
+          errors: result,
+        });
+      },
+    }),
+  );
+
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
   await app.listen(3000);
 }

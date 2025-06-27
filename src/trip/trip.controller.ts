@@ -9,9 +9,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { Prisma, User } from 'generated/prisma';
+import { User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { CreateTripDto } from './dto/trip';
+import { CreateTripDto, UpdateTripDto } from './dto/trip';
 import { TripService } from './trip.service';
 
 @Controller('trip')
@@ -70,10 +70,9 @@ export class TripController {
   })
   updateTrip(
     @Param('id') id: number,
-    @Body() data: Prisma.TripUpdateInput,
-
+    @Body() data: UpdateTripDto,
     @CurrentUser() user: User,
   ) {
-    return this.tripService.updateTrip({ id, data, user });
+    return this.tripService.updateTrip({ id: +id, data, user });
   }
 }

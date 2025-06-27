@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Trip, Prisma } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
-import { CreateTripDto } from './dto/trip';
+import { CreateTripDto, UpdateTripDto } from './dto/trip';
 
 @Injectable()
 export class TripService {
@@ -32,7 +36,7 @@ export class TripService {
       );
 
       if (!tripMember) {
-        throw new Error('You are not a member of this trip');
+        throw new NotFoundException('Trip not found');
       }
     }
 
@@ -148,7 +152,7 @@ export class TripService {
 
   async updateTrip(params: {
     id: number;
-    data: Prisma.TripUpdateInput;
+    data: UpdateTripDto;
     user: { id: number; role: string };
   }): Promise<Trip> {
     const { id, data, user } = params;
@@ -163,11 +167,13 @@ export class TripService {
     const isSuperAdmin = user?.role === 'ADMIN';
 
     if (!tripMember && !isSuperAdmin) {
-      throw new Error('You are not a member of this trip');
+      throw new NotFoundException('Trip not found');
     }
 
     if (!['CREATOR', 'ADMIN'].includes(tripMember.role) && !isSuperAdmin) {
-      throw new Error('You do not have permission to update this trip');
+      throw new ForbiddenException(
+        'You do not have permission to update this trip',
+      );
     }
 
     return this.prisma.trip.update({ where: { id }, data });

@@ -1,17 +1,15 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsNumber,
-  IsDateString,
-  Min,
-  IsNotEmpty,
-  MaxLength,
   IsArray,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateStepDto } from 'src/step/dto';
 
 export enum TripVisibility {
@@ -93,4 +91,45 @@ export class CreateTripDto {
   @ValidateNested({ each: true })
   @Type(() => CreateStepDto)
   steps?: CreateStepDto[];
+}
+
+export class UpdateTripDto {
+  @ApiProperty({
+    description: 'Trip name',
+    example: 'Summer Adventure in Europe',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  name: string;
+
+  @ApiPropertyOptional({
+    description: 'Cover photo URL',
+    example: 'https://example.com/photo.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  coverPhoto?: string;
+
+  @ApiPropertyOptional({
+    description: 'Trip description',
+    example: 'A wonderful journey through European cities',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @ApiPropertyOptional({
+    description: 'Trip visibility',
+    enum: TripVisibility,
+    default: TripVisibility.PRIVATE,
+  })
+  @IsOptional()
+  @IsEnum(TripVisibility, {
+    message: `Visibility must be one of: ${Object.values(TripVisibility).join(
+      ', ',
+    )}`,
+  })
+  visibility?: TripVisibility;
 }
