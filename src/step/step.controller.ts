@@ -8,9 +8,11 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { Prisma } from 'generated/prisma';
+import { Prisma, User } from 'generated/prisma';
 import { StepService } from './step.service';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { UpdateStepDto } from './dto';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @Controller('step')
 @ApiBearerAuth('access-token')
@@ -53,13 +55,17 @@ export class StepController {
     description: 'Step data to create',
     type: Object,
   })
-  update(@Param('id') id: string, @Body() body: Prisma.StepUpdateInput) {
-    return this.stepService.update(+id, body);
+  update(
+    @Param('id') id: string,
+    @Body() step: UpdateStepDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.stepService.update({ id: +id, step, user });
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.stepService.remove(+id);
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.stepService.remove({ id: +id, user });
   }
 
   @Post(':id/comment')

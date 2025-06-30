@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma, User } from 'generated/prisma';
+import { UpdateStepDto } from './dto';
 
 @Injectable()
 export class StepService {
@@ -55,14 +60,57 @@ export class StepService {
     };
   }
 
-  async update(id: number, step: Prisma.StepUpdateInput) {
+  async update({
+    id,
+    step,
+    user,
+  }: {
+    id: number;
+    step: UpdateStepDto;
+    user: User;
+  }) {
+    const trip = await this.prisma.trip.findUnique({
+      where: {
+        id: step.tripId,
+        TripMember: {
+          some: {
+            userId: user.id,
+          },
+        },
+      },
+      include: { TripMember: true },
+    });
+
+    if (!trip) throw new NotFoundException('Trip not found');
+
     return this.prisma.step.update({
       where: { id },
       data: step,
     });
   }
 
-  async remove(id: number) {
+  async remove({ id, user }: { id: number; user: User }) {
+    const step = await this.prisma.step.findUnique({
+      where: {
+        id,
+        Trip: {
+          TripMember: {
+            some: {
+              userId: user.id,
+              role: {
+                in: ['ADMIN', 'CREATOR'],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!step)
+      throw new UnauthorizedException(
+        'You dont have permission to remove this step!',
+      );
+
     return this.prisma.step.delete({
       where: { id },
     });
