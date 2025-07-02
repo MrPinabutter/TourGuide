@@ -82,7 +82,7 @@ model Friendship {
 model Trip {
   steps       Step[]
   id          Int            @id @default(autoincrement())
-  name        String         @unique
+  name        String
   coverPhoto  String?
   description String?
   createdAt   DateTime       @default(now())
