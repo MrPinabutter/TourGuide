@@ -8,18 +8,19 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Prisma, User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserService } from './user.service';
 
 @Controller('user')
+@ApiBearerAuth('access-token')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('profile')
   async getProfile(@CurrentUser() user: User) {
-    this.userService.getProfile(user);
+    return this.userService.getProfile(user);
   }
 
   @Get(':id')

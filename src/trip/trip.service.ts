@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Trip, Prisma } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
@@ -30,7 +31,7 @@ export class TripService {
       },
     });
 
-    if (trip.visibility === 'PRIVATE') {
+    if (!trip || trip.visibility === 'PRIVATE') {
       const tripMember = trip?.TripMember.find(
         (member) => member.userId === user.id,
       );
@@ -51,7 +52,7 @@ export class TripService {
     cursor?: Prisma.TripWhereUniqueInput;
     where?: Prisma.TripWhereInput;
     orderBy?: Prisma.TripOrderByWithRelationInput;
-    user?: { id: number; role: string };
+    user: { id: number; role: string };
   }): Promise<Trip[]> {
     const { skip, take, cursor, where, orderBy } = params;
 
@@ -195,12 +196,14 @@ export class TripService {
 
     const isSuperAdmin = user.role === 'ADMIN';
 
-    if (!tripMember && !isSuperAdmin) {
-      throw new Error('You are not a member of this trip');
-    }
-
-    if (!['CREATOR'].includes(tripMember.role) && !isSuperAdmin) {
-      throw new Error('You do not have permission to delete this trip');
+    if (
+      !tripMember &&
+      !['ADMIN', 'CREATOR'].includes(tripMember?.role) &&
+      !isSuperAdmin
+    ) {
+      throw new UnauthorizedException(
+        'You do not have permission to delete this trip',
+      );
     }
 
     return this.prisma.trip.delete({

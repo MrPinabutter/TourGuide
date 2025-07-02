@@ -11,7 +11,7 @@ import {
 import { Prisma, User } from 'generated/prisma';
 import { StepService } from './step.service';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { UpdateStepDto } from './dto';
+import { CreateStepDto, UpdateStepDto } from './dto';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @Controller('step')
@@ -22,10 +22,10 @@ export class StepController {
   @Post()
   @ApiBody({
     description: 'Step data to create',
-    type: Object,
+    type: CreateStepDto,
   })
-  create(@Body() body: Prisma.StepCreateInput) {
-    return this.stepService.create(body);
+  create(@Body() step: CreateStepDto, @CurrentUser() user: User) {
+    return this.stepService.create({ step, user });
   }
 
   @Get()
@@ -53,7 +53,7 @@ export class StepController {
   @Patch(':id')
   @ApiBody({
     description: 'Step data to create',
-    type: Object,
+    type: UpdateStepDto,
   })
   update(
     @Param('id') id: string,

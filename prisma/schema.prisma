@@ -102,7 +102,7 @@ model TripMember {
   role MemberRole @default(MEMBER)
 
   user         User   @relation(fields: [userId], references: [id])
-  trip         Trip   @relation(fields: [tripId], references: [id])
+  trip         Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   createdSteps Step[]
 
   @@unique([userId, tripId])
@@ -120,7 +120,7 @@ model Step {
   updatedAt     DateTime @updatedAt
   order         Int
 
-  Trip   Trip @relation(fields: [tripId], references: [id])
+  Trip   Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId Int
 
   creator   User @relation(fields: [creatorId], references: [id])

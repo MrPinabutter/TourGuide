@@ -85,14 +85,6 @@ export class CreateStepDto {
   @IsNumber()
   @Transform(({ value }) => parseInt(value))
   tripId: number;
-
-  @ApiProperty({
-    description: 'Creator ID',
-    example: 456,
-  })
-  @IsNumber()
-  @Transform(({ value }) => parseInt(value))
-  creatorId: number;
 }
 
 export class UpdateStepDto {
@@ -174,12 +166,4 @@ export class UpdateStepDto {
   @IsNumber()
   @Transform(({ value }) => parseInt(value))
   tripId: number;
-
-  @ApiProperty({
-    description: 'Creator ID',
-    example: 456,
-  })
-  @IsNumber()
-  @Transform(({ value }) => parseInt(value))
-  creatorId: number;
 }

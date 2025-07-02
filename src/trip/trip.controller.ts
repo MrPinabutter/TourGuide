@@ -28,11 +28,13 @@ export class TripController {
     @Query('orderBy') orderBy = 'createdAt',
     @Query('skip') skip = 0,
     @Query('take') take = 10,
+    @CurrentUser() user: User,
   ) {
     return this.tripService.getMyTrips({
       orderBy: { [orderBy]: 'desc' },
       skip,
       take,
+      user,
     });
   }
 

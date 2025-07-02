@@ -5,15 +5,34 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Prisma, User } from 'generated/prisma';
-import { UpdateStepDto } from './dto';
+import { CreateStepDto, UpdateStepDto } from './dto';
 
 @Injectable()
 export class StepService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.StepCreateInput) {
+  async create({ step, user }: { step: CreateStepDto; user: User }) {
+    const trip = await this.prisma.trip.findUnique({
+      where: {
+        id: step.tripId,
+        TripMember: {
+          some: {
+            userId: user.id,
+            role: {
+              in: ['ADMIN', 'CREATOR'],
+            },
+          },
+        },
+      },
+    });
+
+    if (!trip)
+      throw new UnauthorizedException(
+        "You don't have permission to create a new step in this trip",
+      );
+
     return this.prisma.step.create({
-      data,
+      data: { ...step, creatorId: user.id },
     });
   }
 
