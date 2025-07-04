@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, User } from 'generated/prisma';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Prisma, User, UserVisibility } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
@@ -26,28 +30,54 @@ export class UserService {
     const requestedUser = await this.prisma.user.findUnique({
       where: {
         id,
+        isActive: true,
+      },
+      select: {
+        name: true,
+        username: true,
+        visibility: true,
+        email: true,
       },
     });
 
     if (!user)
-      throw new Error('You do not have permission to delete this user');
+      throw new UnauthorizedException(
+        'You do not have permission to delete this user',
+      );
+
+    const friendShip = await this.prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { userId: id, friendId: user.id },
+          { userId: user.id, friendId: id },
+        ],
+      },
+    });
 
     if (requestedUser.visibility === 'PRIVATE') {
-      const friendShip = await this.prisma.friendship.findFirst({
-        where: {
-          OR: [
-            { userId: id, friendId: user.id },
-            { userId: user.id, friendId: id },
-          ],
-        },
-      });
-
       if (!friendShip) {
-        throw new Error('This account is private');
+        throw new NotFoundException('This account is private');
       }
     }
+    const tripsOfThisUser = await this.prisma.trip.findMany({
+      where: {
+        visibility: {
+          in: [...(friendShip ? ['FRIENDS_ONLY' as const] : []), 'PUBLIC'],
+        },
+      },
+      select: {
+        name: true,
+        steps: true,
+        description: true,
+        id: true,
+        coverPhoto: true,
+        likes: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+    });
 
-    return user;
+    return { ...user, trips: tripsOfThisUser };
   }
 
   async getAllUsers({
@@ -67,14 +97,20 @@ export class UserService {
       skip,
       take,
       cursor,
-      where,
+      where: {
+        ...where,
+        visibility: 'PUBLIC',
+        isActive: true,
+      },
       orderBy,
+      select: {},
     });
   }
 
   async getUsersByName(name: string) {
     return this.prisma.user.findMany({
       where: {
+        visibility: 'PUBLIC',
         name: {
           contains: name,
           mode: 'insensitive',
@@ -91,20 +127,22 @@ export class UserService {
 
   async updateUser({
     id,
-    name,
+    data,
     user,
   }: {
     id: number;
-    name: string;
+    data: { name: string; username: string; visibility: UserVisibility };
     user: { role: string; id: number };
   }) {
     if (id !== user.id && user.role !== 'ADMIN') {
-      throw new Error('You do not have permission to update this user');
+      throw new UnauthorizedException(
+        'You do not have permission to update this user',
+      );
     }
 
     return this.prisma.user.update({
       where: { id },
-      data: { name },
+      data,
     });
   }
 
@@ -116,7 +154,9 @@ export class UserService {
     user: { role: string; id: number };
   }) {
     if (id !== user.id && user.role !== 'ADMIN') {
-      throw new Error('You do not have permission to delete this user');
+      throw new UnauthorizedException(
+        'You do not have permission to delete this user',
+      );
     }
 
     return this.prisma.user.update({

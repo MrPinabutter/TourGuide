@@ -18,6 +18,19 @@ import { TripService } from './trip.service';
 @ApiBearerAuth('access-token')
 export class TripController {
   constructor(private readonly tripService: TripService) {}
+  @Get('public')
+  async getPublicTrips(
+    @Query('orderBy') orderBy = 'createdAt',
+    @Query('skip') skip = 0,
+    @Query('take') take = 10,
+  ) {
+    return this.tripService.getPublicTrips({
+      orderBy: { [orderBy]: 'desc' },
+      skip,
+      take,
+    });
+  }
+
   @Get(':id')
   async getTrip(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tripService.getTrip({ id, user });
@@ -38,19 +51,6 @@ export class TripController {
     });
   }
 
-  @Get('public')
-  async getPublicTrips(
-    @Query('orderBy') orderBy = 'createdAt',
-    @Query('skip') skip = 0,
-    @Query('take') take = 10,
-  ) {
-    return this.tripService.getPublicTrips({
-      orderBy: { [orderBy]: 'desc' },
-      skip,
-      take,
-    });
-  }
-
   @Post()
   @ApiBody({
     description: 'Trip data to create',
@@ -68,7 +68,7 @@ export class TripController {
   @Put(':id')
   @ApiBody({
     description: 'Trip data to update',
-    type: Object,
+    type: UpdateTripDto,
   })
   updateTrip(
     @Param('id') id: number,

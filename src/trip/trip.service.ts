@@ -88,15 +88,17 @@ export class TripService {
     where?: Prisma.TripWhereInput;
     orderBy?: Prisma.TripOrderByWithRelationInput;
   }): Promise<Trip[]> {
-    const { skip, take, cursor, where, orderBy } = params;
+    const { skip, take, cursor, where = {}, orderBy } = params;
     const publicWhere: Prisma.TripWhereInput = {
       ...where,
       visibility: 'PUBLIC',
     };
 
+    console.log(publicWhere);
+
     // TODO: handle friends-only visibility
 
-    return this.prisma.trip.findMany({
+    return await this.prisma.trip.findMany({
       skip,
       take,
       cursor,

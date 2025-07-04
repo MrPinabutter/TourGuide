@@ -9,7 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { Prisma, User } from 'generated/prisma';
+import { Prisma, User, UserVisibility } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserService } from './user.service';
 
@@ -60,12 +60,17 @@ export class UserController {
   }
 
   @Put(':id')
+  @ApiBody({
+    description: 'User data to Update',
+    type: Object,
+  })
   async updateUser(
     @Param('id') id: number,
-    @Body('name') name: string,
+    @Body()
+    data: { name: string; username: string; visibility: UserVisibility },
     @CurrentUser() user: User,
   ) {
-    return this.userService.updateUser({ id, name, user });
+    return this.userService.updateUser({ id, data, user });
   }
 
   @Delete(':id')
