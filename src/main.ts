@@ -15,7 +15,6 @@ async function bootstrap() {
     .setTitle('Tour Guide example')
     .setDescription('The tour-guide API description')
     .setVersion('1.0')
-    .addTag('tour')
     .addBearerAuth(
       {
         type: 'http',

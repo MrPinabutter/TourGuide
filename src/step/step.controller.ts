@@ -6,13 +6,12 @@ import {
   Param,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
-import { Prisma, User } from 'generated/prisma';
-import { StepService } from './step.service';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { CreateStepDto, UpdateStepDto } from './dto';
+import { User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { CreateStepDto, UpdateStepDto } from './dto';
+import { StepService } from './step.service';
 
 @Controller('step')
 @ApiBearerAuth('access-token')
@@ -26,23 +25,6 @@ export class StepController {
   })
   create(@Body() step: CreateStepDto, @CurrentUser() user: User) {
     return this.stepService.create({ step, user });
-  }
-
-  @Get()
-  findAll(
-    @Query('skip') skip = 0,
-    @Query('take') take = 10,
-    @Query('cursor') cursor: Prisma.StepWhereUniqueInput,
-    @Query('where') where: Prisma.StepWhereInput,
-    @Query('orderBy') orderBy: Prisma.StepOrderByWithRelationInput,
-  ) {
-    return this.stepService.findAll({
-      skip: Number(skip),
-      take: Number(take),
-      cursor,
-      where,
-      orderBy,
-    });
   }
 
   @Get(':id')
