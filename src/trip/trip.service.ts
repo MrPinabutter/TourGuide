@@ -2,10 +2,10 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Trip, Prisma } from 'generated/prisma';
+import { Prisma, Trip, User } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
+import { validateTripMemberPermissions } from 'src/utils/validation';
 import { CreateTripDto, UpdateTripDto } from './dto/trip';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class TripService {
     user,
   }: {
     id: string;
-    user: { id: number; role: string };
+    user: User;
   }): Promise<Trip | null> {
     if (!id) {
       throw new Error('Trip ID is required');
@@ -31,17 +31,17 @@ export class TripService {
       },
     });
 
-    if (!trip || trip.visibility === 'PRIVATE') {
-      const tripMember = trip?.TripMember.find(
-        (member) => member.userId === user.id,
+    if (
+      !validateTripMemberPermissions({
+        user,
+        tripMembers: trip.TripMember,
+        allowedRoles: ['ADMIN', 'CREATOR', 'MEMBER'],
+      }) &&
+      trip.visibility === 'PRIVATE'
+    )
+      throw new ForbiddenException(
+        'You do not have permission to update this trip',
       );
-
-      if (!tripMember) {
-        throw new NotFoundException('Trip not found');
-      }
-    }
-
-    //TODO: handle friends-only visibility
 
     return trip;
   }
@@ -93,8 +93,6 @@ export class TripService {
       ...where,
       visibility: 'PUBLIC',
     };
-
-    console.log(publicWhere);
 
     // TODO: handle friends-only visibility
 
@@ -156,57 +154,45 @@ export class TripService {
   async updateTrip(params: {
     id: number;
     data: UpdateTripDto;
-    user: { id: number; role: string };
+    user: User;
   }): Promise<Trip> {
     const { id, data, user } = params;
 
-    const tripMember = await this.prisma.tripMember.findFirst({
+    const trip = await this.prisma.trip.findFirst({
       where: {
-        tripId: id,
-        userId: params.user.id,
+        id: id,
+      },
+      include: {
+        TripMember: true,
       },
     });
 
-    const isSuperAdmin = user?.role === 'ADMIN';
+    if (!trip) throw new NotFoundException('Trip not found');
 
-    if (!tripMember && !isSuperAdmin) {
-      throw new NotFoundException('Trip not found');
-    }
-
-    if (!['CREATOR', 'ADMIN'].includes(tripMember.role) && !isSuperAdmin) {
+    if (!validateTripMemberPermissions({ user, tripMembers: trip.TripMember }))
       throw new ForbiddenException(
         'You do not have permission to update this trip',
       );
-    }
 
     return this.prisma.trip.update({ where: { id }, data });
   }
 
-  async deleteTrip({
-    id,
-    user,
-  }: {
-    id: number;
-    user: { id: number; role: string };
-  }): Promise<Trip> {
-    const tripMember = await this.prisma.tripMember.findFirst({
+  async deleteTrip({ id, user }: { id: number; user: User }): Promise<Trip> {
+    const trip = await this.prisma.trip.findFirst({
       where: {
-        tripId: id,
-        userId: user.id,
+        id: id,
+      },
+      include: {
+        TripMember: true,
       },
     });
 
-    const isSuperAdmin = user.role === 'ADMIN';
+    if (!trip) throw new NotFoundException('Trip not found');
 
-    if (
-      !tripMember &&
-      !['ADMIN', 'CREATOR'].includes(tripMember?.role) &&
-      !isSuperAdmin
-    ) {
-      throw new UnauthorizedException(
-        'You do not have permission to delete this trip',
+    if (!validateTripMemberPermissions({ user, tripMembers: trip.TripMember }))
+      throw new ForbiddenException(
+        'You do not have permission to update this trip',
       );
-    }
 
     return this.prisma.trip.delete({
       where: { id: +id },

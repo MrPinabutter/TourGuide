@@ -3,10 +3,10 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { User } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
-import { Prisma, User } from 'generated/prisma';
-import { CreateStepDto, UpdateStepDto } from './dto';
 import { validateTripMemberPermissions } from 'src/utils/validation';
+import { CreateStepDto, UpdateStepDto } from './dto';
 
 @Injectable()
 export class StepService {
@@ -88,12 +88,7 @@ export class StepService {
       include: { TripMember: true, steps: true },
     });
 
-    if (
-      validateTripMemberPermissions(
-        user,
-        trip.TripMember.find((it) => it.userId === user.id),
-      )
-    )
+    if (!validateTripMemberPermissions({ user, tripMembers: trip.TripMember }))
       if (!trip) throw new NotFoundException('Trip not found');
 
     const updateQuery = this.prisma.step.update({
@@ -141,10 +136,10 @@ export class StepService {
     if (!step) throw new NotFoundException('Step not found!');
 
     if (
-      validateTripMemberPermissions(
+      !validateTripMemberPermissions({
         user,
-        step.Trip.TripMember.find((it) => it.id === user.id),
-      )
+        tripMembers: step.Trip.TripMember,
+      })
     )
       throw new UnauthorizedException(
         'You dont have permission to remove this step!',

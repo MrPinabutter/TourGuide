@@ -1,20 +1,24 @@
 import { MemberRole, TripMember, User } from 'generated/prisma';
 
-export const validateTripMemberPermissions = (
-  user: User,
-  tripMember: TripMember,
-  allowedRoles: MemberRole[] = ['ADMIN', 'CREATOR'],
-) => {
-  if (!tripMember || typeof tripMember !== 'object') {
-    return false;
-  }
-
+export const validateTripMemberPermissions = ({
+  user,
+  tripMember,
+  tripMembers = [],
+  allowedRoles = ['ADMIN', 'CREATOR'],
+}: {
+  user: User;
+  tripMember?: TripMember;
+  tripMembers?: TripMember[];
+  allowedRoles?: MemberRole[];
+}) => {
   if (user.role === 'ADMIN') {
     return true;
   }
 
-  if (tripMember.role) {
-    return allowedRoles.includes(tripMember.role);
+  const member = tripMember ?? tripMembers.find((it) => it.userId === user.id);
+
+  if (member && member.role) {
+    return allowedRoles.includes(member.role);
   }
 
   return false;
