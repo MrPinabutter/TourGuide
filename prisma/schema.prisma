@@ -89,7 +89,12 @@ model Trip {
   updatedAt   DateTime       @updatedAt
   visibility  TripVisibility @default(PRIVATE)
   likes       Int            @default(0)
-  TripMember  TripMember[]
+
+  inviteToken               String?    @unique
+  inviteMode                MemberRole @default(MEMBER)
+  inviteTokenExpirationDate DateTime?
+
+  TripMember TripMember[]
 }
 
 model TripMember {
@@ -101,9 +106,10 @@ model TripMember {
 
   role MemberRole @default(MEMBER)
 
-  user         User   @relation(fields: [userId], references: [id])
-  trip         Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user         User    @relation(fields: [userId], references: [id])
+  trip         Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
   createdSteps Step[]
+  active       Boolean @default(true)
 
   @@unique([userId, tripId])
 }
