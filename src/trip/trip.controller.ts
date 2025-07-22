@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { CreateTripDto, UpdateTripDto } from './dto/trip';
+import { CreateTripDto, UpdateTokenDto, UpdateTripDto } from './dto/trip';
 import { TripService } from './trip.service';
 
 @Controller('trip')
@@ -76,5 +76,41 @@ export class TripController {
     @CurrentUser() user: User,
   ) {
     return this.tripService.updateTrip({ id: +id, data, user });
+  }
+
+  @Post('join-trip')
+  @ApiBody({
+    description: 'Trip data to update',
+    type: Object,
+  })
+  joinTrip(@Body() data: { token: string }, @CurrentUser() user: User) {
+    return this.tripService.joinTrip({ token: data.token, user });
+  }
+
+  @Post('leave-trip/:id')
+  @ApiBody({
+    description: 'Trip data to update',
+    type: Object,
+  })
+  leaveTrip(@Param('id') id: number, @CurrentUser() user: User) {
+    return this.tripService.leaveTrip({ id: +id, user });
+  }
+
+  @Post('generate-invite/:id')
+  @ApiBody({
+    description: 'Trip data to update',
+    type: UpdateTokenDto,
+  })
+  generateToken(
+    @Param('id') id: number,
+    @Body() data: UpdateTokenDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.tripService.generateInviteToken({
+      expirationDate: data.expirationDate,
+      id: +id,
+      inviteMode: data.inviteMode,
+      user,
+    });
   }
 }

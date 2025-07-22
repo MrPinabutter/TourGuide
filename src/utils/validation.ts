@@ -15,7 +15,8 @@ export const validateTripMemberPermissions = ({
     return true;
   }
 
-  const member = tripMember ?? tripMembers.find((it) => it.userId === user.id);
+  const member =
+    tripMember ?? tripMembers.find((it) => it.userId === user.id && it.active);
 
   if (member && member.role) {
     return allowedRoles.includes(member.role);

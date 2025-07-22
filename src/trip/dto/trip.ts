@@ -10,6 +10,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import { MemberRole } from 'generated/prisma';
 import { CreateStepDto } from 'src/step/dto';
 
 export enum TripVisibility {
@@ -132,4 +133,23 @@ export class UpdateTripDto {
     )}`,
   })
   visibility?: TripVisibility;
+}
+
+export class UpdateTokenDto {
+  @ApiPropertyOptional({
+    description: 'Last update date (ISO string)',
+    example: '2024-01-01T00:00:00.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  expirationDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Invite Mode',
+    enum: MemberRole,
+    default: MemberRole.MEMBER,
+  })
+  @IsOptional()
+  @IsEnum(MemberRole)
+  inviteMode: MemberRole;
 }
