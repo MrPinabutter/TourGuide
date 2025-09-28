@@ -22,4 +22,33 @@ export class TripMemberController {
   async getTrip(@Param('id') id: string, @CurrentUser() user: User) {
     return this.tripMemberService.nada();
   }
+
+  @Post('permission')
+  @ApiBody({
+    description: 'Update user permission',
+    schema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'number' },
+        tripId: { type: 'number' },
+        permission: { type: 'string', enum: ['ADMIN', 'MEMBER'] },
+      },
+    },
+  })
+  async updateUserPermission(
+    @Body()
+    body: {
+      userId: number;
+      tripId: number;
+      permission: 'ADMIN' | 'MEMBER';
+    },
+    @CurrentUser() user: User,
+  ) {
+    return this.tripMemberService.updateUserPermission({
+      currentUser: user,
+      tripId: body.tripId,
+      permission: body.permission,
+      userId: body.userId,
+    });
+  }
 }
