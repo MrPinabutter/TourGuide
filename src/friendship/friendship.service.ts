@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from 'generated/prisma';
-import { async } from 'rxjs';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
@@ -25,7 +23,6 @@ export class FriendshipService {
     friendId: number;
     userId: number;
   }) {
-    // Check if the friendship already exists
     const existingFriendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
@@ -35,16 +32,18 @@ export class FriendshipService {
       },
     });
 
-    if (existingFriendship.status === 'ACCEPTED') {
-      throw new Error('Friendship already exists or is pending');
-    }
+    if (existingFriendship) {
+      if (existingFriendship.status === 'ACCEPTED') {
+        throw new Error('Friendship already exists');
+      }
 
-    if (existingFriendship.status === 'PENDING') {
-      throw new Error('Friendship request already sent');
-    }
+      if (existingFriendship.status === 'PENDING') {
+        throw new Error('Friendship request already sent');
+      }
 
-    if (existingFriendship.status === 'BLOCKED') {
-      throw new Error('Friendship is blocked');
+      if (existingFriendship.status === 'BLOCKED') {
+        throw new Error('Friendship is blocked');
+      }
     }
 
     return this.prisma.$transaction(async (prisma) => {
