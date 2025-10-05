@@ -11,6 +11,41 @@ import { PrismaClientExceptionFilter } from './prisma-client-exception/prisma-cl
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  app.enableCors({
+    origin: isDevelopment
+      ? [
+          // Web development
+          'http://localhost:3000',
+          'http://localhost:3001',
+          // React Native Metro bundler
+          'http://localhost:19000',
+          'http://localhost:19006',
+          // Android emulator
+          'http://10.0.2.2:19000',
+          'http://10.0.2.2:19006',
+          // Common local network ranges for physical devices
+          /^http:\/\/192\.168\.\d+\.\d+:19000$/,
+          /^http:\/\/172\.16\.\d+\.\d+:19000$/,
+          /^http:\/\/10\.0\.\d+\.\d+:19000$/,
+          // Expo development
+          /^https:\/\/.*\.exp\.direct$/,
+          /^https:\/\/.*\.ngrok\.io$/,
+        ]
+      : process.env.ALLOWED_ORIGINS?.split(',') || [],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    optionsSuccessStatus: 200,
+  });
+
   const config = new DocumentBuilder()
     .setTitle('Tour Guide example')
     .setDescription('The tour-guide API description')
@@ -57,7 +92,11 @@ async function bootstrap() {
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
 }
 
 bootstrap();
