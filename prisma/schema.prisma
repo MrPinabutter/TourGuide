@@ -72,6 +72,7 @@ model Friendship {
   friendId  Int
   createdAt DateTime     @default(now())
   status    FriendStatus @default(PENDING)
+  blockedBy Int?
 
   user   User @relation("userFriendships", fields: [userId], references: [id])
   friend User @relation("friendUserFriendships", fields: [friendId], references: [id])
