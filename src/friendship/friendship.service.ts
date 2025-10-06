@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { User } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
 
@@ -7,16 +11,33 @@ export class FriendshipService {
   constructor(private prisma: PrismaService) {}
 
   async getFriends(userId: number) {
-    return this.prisma.friendship.findMany({
+    const friendships = await this.prisma.friendship.findMany({
       where: {
         OR: [{ userId }, { friendId: userId }],
         status: 'ACCEPTED',
       },
-      include: {
-        user: true,
-        friend: true,
+      select: {
+        friend: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        userId: true,
+        friendId: true,
+        id: true,
       },
     });
+
+    return friendships.map((friend) =>
+      friend.userId === userId ? friend.friend : friend.user,
+    );
   }
 
   async acceptFriendRequest({
@@ -27,22 +48,13 @@ export class FriendshipService {
     user: User;
   }) {
     const friendship = await this.prisma.friendship.update({
-      where: { id: friendshipId },
+      where: { id: friendshipId, friendId: user.id },
       data: { status: 'ACCEPTED' },
     });
 
     if (!friendship) {
       throw new NotFoundException('Friendship not found');
     }
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        receivedFriendRequests: {
-          disconnect: { id: friendshipId },
-        },
-      },
-    });
 
     return friendship;
   }
@@ -62,24 +74,21 @@ export class FriendshipService {
       throw new NotFoundException('Friendship not found');
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        receivedFriendRequests: {
-          disconnect: { id: friendshipId },
-        },
-      },
-    });
-
     return friendship;
   }
 
-  async removeFriend({ friendId, user }: { friendId: number; user: User }) {
+  async removeFriend({
+    friendId,
+    userId,
+  }: {
+    friendId: number;
+    userId: number;
+  }) {
     const friendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
-          { friendId, userId: user.id },
-          { friendId: user.id, userId: friendId },
+          { friendId, userId },
+          { friendId: userId, userId: friendId },
         ],
       },
     });
@@ -88,7 +97,7 @@ export class FriendshipService {
       throw new NotFoundException('Friendship not found');
     }
 
-    if (friendship.userId !== user.id && friendship.friendId !== user.id) {
+    if (friendship.userId !== userId && friendship.friendId !== userId) {
       throw new NotFoundException('You are not part of this friendship');
     }
 
@@ -111,7 +120,7 @@ export class FriendshipService {
     });
   }
 
-  async requestFriend({
+  async sendFriendRequest({
     friendId,
     userId,
   }: {
@@ -129,15 +138,25 @@ export class FriendshipService {
 
     if (existingFriendship) {
       if (existingFriendship.status === 'ACCEPTED') {
-        throw new Error('Friendship already exists');
+        throw new BadRequestException('Friendship already exists');
       }
 
-      if (existingFriendship.status === 'PENDING') {
-        throw new Error('Friendship request already sent');
+      if (
+        existingFriendship.status === 'PENDING' &&
+        existingFriendship.userId === userId
+      ) {
+        throw new BadRequestException('Friendship request already sent');
+      }
+
+      if (
+        existingFriendship.status === 'PENDING' &&
+        existingFriendship.friendId === userId
+      ) {
+        throw new BadRequestException('Accept the pending friendship request');
       }
 
       if (existingFriendship.status === 'BLOCKED') {
-        throw new Error('Friendship is blocked');
+        throw new BadRequestException('Friendship is blocked');
       }
     }
 
@@ -165,13 +184,7 @@ export class FriendshipService {
     });
   }
 
-  async blockUser({
-    friendId,
-    user: { id: userId },
-  }: {
-    friendId: number;
-    user: User;
-  }) {
+  async blockUser({ friendId, userId }: { friendId: number; userId: number }) {
     const existingFriendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
@@ -183,8 +196,9 @@ export class FriendshipService {
 
     if (existingFriendship) {
       if (existingFriendship.status === 'BLOCKED') {
-        throw new Error('User is already blocked');
+        throw new BadRequestException('User is already blocked');
       }
+
       return this.prisma.friendship.update({
         where: { id: existingFriendship.id },
         data: { status: 'BLOCKED', blockedBy: userId },
@@ -203,10 +217,10 @@ export class FriendshipService {
 
   async unblockUser({
     friendId,
-    user: { id: userId },
+    userId,
   }: {
     friendId: number;
-    user: User;
+    userId: number;
   }) {
     const existingFriendship = await this.prisma.friendship.findFirst({
       where: {
@@ -220,7 +234,7 @@ export class FriendshipService {
     });
 
     if (!existingFriendship) {
-      throw new Error('No blocked friendship found');
+      throw new NotFoundException('No blocked friendship found');
     }
 
     return this.prisma.friendship.delete({
