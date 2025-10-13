@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from 'src/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -36,6 +32,7 @@ export class AuthService {
     const existingUser = await this.prismaService.user.findFirst({
       where: {
         OR: [{ username: user.username }, { email: user.username }],
+        isActive: true,
       },
     });
 
@@ -97,5 +94,12 @@ export class AuthService {
     } catch (error) {
       throw new Error('Invalid refresh token');
     }
+  }
+
+  async deleteUser(userId: number) {
+    return this.prismaService.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
   }
 }
