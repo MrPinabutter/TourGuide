@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { User } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
@@ -8,21 +8,6 @@ import { TripMemberService } from './trip-member.service';
 @ApiBearerAuth('access-token')
 export class TripMemberController {
   constructor(private readonly tripMemberService: TripMemberService) {}
-
-  @Post()
-  @ApiBody({
-    description: 'Trip data to create',
-    type: Object,
-  })
-  createTrip(@Body() body: any, @CurrentUser() user: User) {
-    return this.tripMemberService.nada();
-  }
-
-  @Get(':id')
-  async getTrip(@Param('id') id: string, @CurrentUser() user: User) {
-    return this.tripMemberService.nada();
-  }
-
   @Post('permission')
   @ApiBody({
     description: 'Update user permission',
@@ -48,6 +33,37 @@ export class TripMemberController {
       currentUser: user,
       tripId: body.tripId,
       permission: body.permission,
+      userId: body.userId,
+    });
+  }
+
+  @Get('trip/:tripId')
+  async getTripMembers(@Param('tripId') tripId: number) {
+    return this.tripMemberService.getTripMembers(tripId);
+  }
+
+  @Delete()
+  @ApiBody({
+    description: 'Remove user from trip',
+    schema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'number' },
+        tripId: { type: 'number' },
+      },
+    },
+  })
+  async removeUserFromTrip(
+    @Body()
+    body: {
+      userId: number;
+      tripId: number;
+    },
+    @CurrentUser() user: User,
+  ) {
+    return this.tripMemberService.removeUserFromTrip({
+      currentUser: user,
+      tripId: body.tripId,
       userId: body.userId,
     });
   }
