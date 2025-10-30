@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma.service';
@@ -16,6 +20,32 @@ export class AuthService {
   }
 
   async register(user: { email: string; username: string; password: string }) {
+    if (user.password.length < 8) {
+      throw new BadRequestException(
+        'Password must be at least 8 characters long',
+      );
+    }
+
+    if (
+      !/[A-Z]/.test(user.password) ||
+      !/[a-z]/.test(user.password) ||
+      !/[0-9]/.test(user.password)
+    ) {
+      throw new BadRequestException(
+        'Password must contain uppercase, lowercase letters, and numbers',
+      );
+    }
+
+    const existingUser = await this.prismaService.user.findFirst({
+      where: {
+        OR: [{ email: user.email }, { username: user.username }],
+      },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email or username already in use');
+    }
+
     const hashedPassword = await this.hashPassword(user.password);
 
     const newUser = await this.prismaService.user.create({
@@ -26,6 +56,13 @@ export class AuthService {
       },
     });
     return newUser;
+  }
+
+  async validateUsername(username: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { username: username },
+    });
+    return !!user;
   }
 
   async login(user: { username: string; password?: string }) {

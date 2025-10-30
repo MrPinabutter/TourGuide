@@ -91,6 +91,21 @@ export class AuthController {
     return await this.authService.validateUser(validateDto.id);
   }
 
+  @Post('validate-username')
+  @Public()
+  @ApiBody({
+    description: 'Validate username',
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string', example: 'username' },
+      },
+    },
+  })
+  async validateUsername(@Body() body: { username: string }) {
+    return await this.authService.validateUsername(body.username);
+  }
+
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     return await this.authService.refresh(body.refreshToken);
