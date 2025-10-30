@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
+import { LoginDto } from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,7 +37,6 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   async getProfile(@CurrentUser() user: User) {
     delete user.password;
-    delete user.refreshToken;
 
     return user;
   }
@@ -72,7 +72,7 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() loginDto: { username: string; password?: string }) {
+  async login(@Body() loginDto: LoginDto) {
     return await this.authService.login(loginDto);
   }
 

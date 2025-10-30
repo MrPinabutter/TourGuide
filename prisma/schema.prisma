@@ -46,17 +46,17 @@ model User {
 
   role UserRole @default(USER)
 
-  googleId     String? @unique
-  refreshToken String?
+  googleId String? @unique
 
   TripMember TripMember[]
 
   isActive Boolean @default(true)
 
-  sentFriendRequests     Friendship[] @relation("userFriendships")
-  receivedFriendRequests Friendship[] @relation("friendUserFriendships")
+  sentFriendRequests     Friendship[]   @relation("userFriendships")
+  receivedFriendRequests Friendship[]   @relation("friendUserFriendships")
   comments               Comment[]
   Step                   Step[]
+  refreshTokens          RefreshToken[]
 
   visibility UserVisibility @default(PUBLIC)
 
@@ -64,6 +64,23 @@ model User {
 
   @@index([email])
   @@index([username])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+
+  userAgent String?
+  ipAddress String?
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 model Friendship {
