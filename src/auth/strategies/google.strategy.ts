@@ -51,7 +51,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
           }`,
           username,
           googleId: profile.id,
-          refreshToken,
         },
       });
     } else {
@@ -60,7 +59,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
           where: { email },
           data: {
             googleId: profile.id,
-            refreshToken,
           },
         });
       }
