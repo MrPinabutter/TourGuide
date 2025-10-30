@@ -1,16 +1,16 @@
-FROM node:20-alpine AS development
+FROM node:22.19-alpine AS development
 
 WORKDIR /usr/src/app
 
 RUN apk add --no-cache python3 make g++ git
 
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-RUN npm install
+RUN yarn install
 
 COPY . .
 
-RUN npm run build
+RUN yarn build
 
 FROM node:20-alpine AS production
 
@@ -21,9 +21,9 @@ WORKDIR /usr/src/app
 
 RUN apk add --no-cache python3 make g++
 
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-RUN npm ci --omit=dev
+RUN yarn install --production --frozen-lockfile
 
 COPY --from=development /usr/src/app/dist ./dist
 
