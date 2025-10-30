@@ -76,21 +76,6 @@ export class AuthController {
     return await this.authService.login(loginDto);
   }
 
-  @Post('validate')
-  @ApiBearerAuth('access-token')
-  @ApiBody({
-    description: 'Validate user by ID',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number' },
-      },
-    },
-  })
-  async validate(@Body() validateDto: { id: number }) {
-    return await this.authService.validateUser(validateDto.id);
-  }
-
   @Post('validate-username')
   @Public()
   @ApiBody({
@@ -107,6 +92,19 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
+  @ApiBody({
+    description: 'Refresh access token using refresh token',
+    schema: {
+      type: 'object',
+      properties: {
+        refreshToken: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+      },
+    },
+  })
   async refresh(@Body() body: { refreshToken: string }) {
     return await this.authService.refresh(body.refreshToken);
   }

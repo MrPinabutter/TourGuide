@@ -76,7 +76,7 @@ export class AuthService {
     const user = await this.prismaService.user.findFirst({
       where: { username: username },
     });
-    return !!user;
+    return { available: !user };
   }
 
   async login(
