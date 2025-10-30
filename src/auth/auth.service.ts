@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma.service';
 import { AuthResponseDto, LoginDto, RegisterDto } from './dto/auth.dto';
 import { randomBytes } from 'crypto';
+import { User } from 'generated/prisma';
 
 @Injectable()
 export class AuthService {
@@ -114,12 +115,12 @@ export class AuthService {
   }
 
   async loginWithGoogle(
-    googleUser: { id: string; email: string; name: string },
+    googleUser: User,
     userAgent?: string,
     ipAddress?: string,
   ): Promise<AuthResponseDto> {
     let user = await this.prismaService.user.findUnique({
-      where: { googleId: googleUser.id },
+      where: { googleId: googleUser.googleId },
     });
 
     if (!user) {
@@ -130,14 +131,14 @@ export class AuthService {
       if (user) {
         user = await this.prismaService.user.update({
           where: { id: user.id },
-          data: { googleId: googleUser.id },
+          data: { googleId: googleUser.googleId },
         });
       } else {
         user = await this.prismaService.user.create({
           data: {
             email: googleUser.email,
             name: googleUser.name,
-            googleId: googleUser.id,
+            googleId: googleUser.googleId,
             username: googleUser.email.split('@')[0] + '_' + Date.now(),
           },
         });

@@ -3,18 +3,32 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
+  Ip,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { User } from 'generated/prisma';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
-import { LoginDto } from './dto/auth.dto';
+import {
+  AuthResponseDto,
+  LoginDto,
+  RefreshTokenDto,
+  RegisterDto,
+} from './dto/auth.dto';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -22,6 +36,7 @@ export class AuthController {
   @Get('google')
   @Public()
   @UseGuards(GoogleOAuthGuard)
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
   async googleAuth() {
     return;
   }
@@ -29,12 +44,29 @@ export class AuthController {
   @Get('google-redirect')
   @Public()
   @UseGuards(GoogleOAuthGuard)
-  async googleAuthCallback(@Req() req) {
-    return await this.authService.login(req.user);
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully authenticated',
+    type: AuthResponseDto,
+  })
+  async googleAuthCallback(
+    @Req() req,
+    @Headers('user-agent') userAgent?: string,
+    @Ip() ipAddress?: string,
+  ): Promise<AuthResponseDto> {
+    return await this.authService.loginWithGoogle(
+      req.user,
+      userAgent,
+      ipAddress,
+    );
   }
 
   @Get('me')
   @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@CurrentUser() user: User) {
     delete user.password;
 
@@ -43,43 +75,46 @@ export class AuthController {
 
   @Post('register')
   @Public()
-  @ApiBody({
-    description: 'Register a new user',
-    schema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', example: 'user@example.com' },
-        username: { type: 'string', example: 'username' },
-        password: { type: 'string', example: 'password' },
-      },
-    },
+  @ApiOperation({ summary: 'Register new user' })
+  @ApiResponse({
+    status: 201,
+    description: 'User successfully registered',
+    type: AuthResponseDto,
   })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiBody({ type: RegisterDto })
   async register(
-    @Body() registerDto: { email: string; username: string; password: string },
-  ) {
-    return await this.authService.register(registerDto);
+    @Body() registerDto: RegisterDto,
+    @Headers('user-agent') userAgent?: string,
+    @Ip() ipAddress?: string,
+  ): Promise<AuthResponseDto> {
+    return await this.authService.register(registerDto, userAgent, ipAddress);
   }
 
   @Post('login')
   @Public()
-  @ApiBody({
-    description: 'Login with username/email and password',
-    schema: {
-      type: 'object',
-      properties: {
-        username: { type: 'string', example: 'username or email' },
-        password: { type: 'string', example: 'password' },
-      },
-    },
+  @ApiOperation({ summary: 'Login with credentials' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully logged in',
+    type: AuthResponseDto,
   })
-  async login(@Body() loginDto: LoginDto) {
-    return await this.authService.login(loginDto);
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiBody({ type: LoginDto })
+  async login(
+    @Body() loginDto: LoginDto,
+    @Headers('user-agent') userAgent: string,
+    @Ip() ipAddress: string,
+  ): Promise<AuthResponseDto> {
+    return await this.authService.login(loginDto, userAgent, ipAddress);
   }
 
   @Post('validate-username')
   @Public()
+  @ApiOperation({ summary: 'Check if username is available' })
+  @ApiResponse({ status: 200, description: 'Username availability checked' })
   @ApiBody({
-    description: 'Validate username',
+    description: 'Username to validate',
     schema: {
       type: 'object',
       properties: {
@@ -93,20 +128,60 @@ export class AuthController {
 
   @Post('refresh')
   @Public()
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  async refresh(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Headers('user-agent') userAgent: string,
+    @Ip() ipAddress: string,
+  ): Promise<AuthResponseDto> {
+    return await this.authService.refresh(
+      refreshTokenDto.refreshToken,
+      userAgent,
+      ipAddress,
+    );
+  }
+
+  @Post('logout')
+  @Public()
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'Successfully logged out' })
   @ApiBody({
-    description: 'Refresh access token using refresh token',
+    description: 'Refresh token to revoke',
     schema: {
       type: 'object',
       properties: {
         refreshToken: {
           type: 'string',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          description: 'Refresh token to revoke',
         },
       },
+      required: ['refreshToken'],
     },
   })
-  async refresh(@Body() body: { refreshToken: string }) {
-    return await this.authService.refresh(body.refreshToken);
+  async logout(
+    @Body() body: { refreshToken: string },
+  ): Promise<{ message: string }> {
+    return await this.authService.logout(body.refreshToken);
+  }
+
+  @Post('logout-all')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Logout from all devices' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully logged out from all devices',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async logoutAll(@CurrentUser() user: User): Promise<{ message: string }> {
+    return await this.authService.logoutAll(user.id);
   }
 
   @Delete('user/me')
