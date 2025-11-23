@@ -41,6 +41,39 @@ export class AuthController {
     return;
   }
 
+  @Post('google-mobile')
+  @Public()
+  @ApiOperation({ summary: 'Google OAuth for mobile apps' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully authenticated',
+    type: AuthResponseDto,
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        idToken: {
+          type: 'string',
+          description: 'Google ID token from mobile SDK',
+          example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjI3...',
+        },
+      },
+      required: ['idToken'],
+    },
+  })
+  async googleAuthMobile(
+    @Body('idToken') idToken: string,
+    @Headers('user-agent') userAgent: string,
+    @Ip() ipAddress: string,
+  ) {
+    return this.authService.loginWithGoogleMobile(
+      idToken,
+      userAgent,
+      ipAddress,
+    );
+  }
+
   @Get('google-redirect')
   @Public()
   @UseGuards(GoogleOAuthGuard)

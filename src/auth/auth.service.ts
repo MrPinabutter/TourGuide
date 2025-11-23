@@ -11,14 +11,20 @@ import { PrismaService } from 'src/prisma.service';
 import { AuthResponseDto, LoginDto, RegisterDto } from './dto/auth.dto';
 import { randomBytes } from 'crypto';
 import { User } from 'generated/prisma';
+import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
+  private googleClient: OAuth2Client;
   constructor(
     private jwtService: JwtService,
     private prismaService: PrismaService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   async hashPassword(password: string): Promise<string> {
     const saltOrRounds = 10;
@@ -114,6 +120,82 @@ export class AuthService {
     return await this.generateTokens(existingUser.id, userAgent, ipAddress);
   }
 
+  async loginWithGoogleMobile(
+    idToken: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<AuthResponseDto> {
+    if (!idToken) {
+      throw new BadRequestException('ID token is required');
+    }
+
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+
+      const payload = ticket.getPayload();
+
+      if (!payload || !payload.email || !payload.sub) {
+        throw new UnauthorizedException('Invalid Google token payload');
+      }
+
+      if (!payload.email_verified) {
+        throw new UnauthorizedException('Google email is not verified');
+      }
+
+      let user = await this.prismaService.user.findUnique({
+        where: { googleId: payload.sub },
+      });
+
+      if (!user) {
+        const existingUser = await this.prismaService.user.findUnique({
+          where: { email: payload.email },
+        });
+
+        if (existingUser) {
+          user = await this.prismaService.user.update({
+            where: { id: existingUser.id },
+            data: { googleId: payload.sub },
+          });
+        } else {
+          user = await this.prismaService.user.create({
+            data: {
+              email: payload.email,
+              name: payload.name || null,
+              googleId: payload.sub,
+              username:
+                (payload.email.split('@')[0] || 'user') +
+                '_' +
+                Date.now().toString().slice(-6),
+              isActive: true,
+            },
+          });
+        }
+      }
+
+      if (!user.isActive) {
+        throw new UnauthorizedException('User account is inactive');
+      }
+
+      return await this.generateTokens(user.id, userAgent, ipAddress);
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      console.error('Google authentication error:', error);
+
+      throw new UnauthorizedException(
+        'Failed to authenticate with Google. Please try again.',
+      );
+    }
+  }
+
   async loginWithGoogle(
     googleUser: User,
     userAgent?: string,
@@ -185,9 +267,12 @@ export class AuthService {
     const refreshTokenExpiry =
       this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '7d';
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: accessTokenExpiry,
-    });
+    const accessToken = this.jwtService.sign(
+      payload as any,
+      {
+        expiresIn: accessTokenExpiry,
+      } as any,
+    );
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -208,12 +293,15 @@ export class AuthService {
       type: 'refresh',
     };
 
-    const refreshTokenValue = this.jwtService.sign(refreshPayload, {
-      secret:
-        this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
-        this.configService.get<string>('JWT_SECRET'),
-      expiresIn: refreshTokenExpiry,
-    });
+    const refreshTokenValue = this.jwtService.sign(
+      refreshPayload as any,
+      {
+        secret:
+          this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
+          this.configService.get<string>('JWT_SECRET'),
+        expiresIn: refreshTokenExpiry,
+      } as any,
+    );
 
     const hashedRefreshToken = await this.hashPassword(refreshTokenValue);
 
