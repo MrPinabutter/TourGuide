@@ -4,25 +4,21 @@ services:
   api:
     build:
       context: .
-      target: development
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      target: production
+      dockerfile: Dockerfile
     ports:
       - '3000:3000'
-    command: npm run start:dev
     env_file:
       - .env
     environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=tourguide
-      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/tourguide?schema=public
+      - NODE_ENV=production
     depends_on:
       - postgres
     restart: unless-stopped
+    networks:
+      - tour-guide-network
+    command: sh -c "sleep 10 && npx prisma migrate deploy && node dist/main"
 
   postgres:
     image: postgres:16-alpine
@@ -34,6 +30,18 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tour-guide-network
+    restart: unless-stopped
+
+networks:
+  tour-guide-network:
+    driver: bridge
 
 volumes:
   postgres_data:

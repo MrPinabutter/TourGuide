@@ -14,26 +14,7 @@ async function bootstrap() {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   app.enableCors({
-    origin: isDevelopment
-      ? [
-          // Web development
-          'http://localhost:3000',
-          'http://localhost:3001',
-          // React Native Metro bundler
-          'http://localhost:19000',
-          'http://localhost:19006',
-          // Android emulator
-          'http://10.0.2.2:19000',
-          'http://10.0.2.2:19006',
-          // Common local network ranges for physical devices
-          /^http:\/\/192\.168\.\d+\.\d+:19000$/,
-          /^http:\/\/172\.16\.\d+\.\d+:19000$/,
-          /^http:\/\/10\.0\.\d+\.\d+:19000$/,
-          // Expo development
-          /^https:\/\/.*\.exp\.direct$/,
-          /^https:\/\/.*\.ngrok\.io$/,
-        ]
-      : process.env.ALLOWED_ORIGINS?.split(',') || [],
+    origin: isDevelopment ? '*' : process.env.ALLOWED_ORIGINS?.split(',') || [],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: [
