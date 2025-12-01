@@ -29,7 +29,11 @@ export class TripService {
     const trip = await this.prisma.trip.findUnique({
       where: { id: +id },
       include: {
-        TripMember: true,
+        TripMember: {
+          include: {
+            user: true,
+          },
+        },
         steps: true,
       },
     });
@@ -271,8 +275,6 @@ export class TripService {
       },
     });
   }
-
-  
 
   async joinTrip({ token, user }: { token: string; user: User }) {
     const trip = await this.prisma.trip.findUnique({
