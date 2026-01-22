@@ -19,7 +19,8 @@ export class RegisterDto {
   username: string;
 
   @ApiProperty({
-    description: 'User password (min 8 characters, must contain uppercase, lowercase, and number)',
+    description:
+      'User password (min 8 characters, must contain uppercase, lowercase, and number)',
     example: 'SecurePass123',
   })
   @IsString()
@@ -80,4 +81,16 @@ export class AuthResponseDto {
     example: 900,
   })
   expiresIn: number;
+
+  @ApiProperty({
+    description: 'User information (optional)',
+    required: false,
+  })
+  user?: {
+    id: number;
+    name: string | null;
+    email: string;
+    username: string;
+    role: string;
+  };
 }

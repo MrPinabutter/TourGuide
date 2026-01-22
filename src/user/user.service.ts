@@ -86,24 +86,35 @@ export class UserService {
     cursor,
     where,
     orderBy,
+    user,
   }: {
     skip?: number;
     take?: number;
     cursor?: Prisma.UserWhereUniqueInput;
     where?: Prisma.UserWhereInput;
     orderBy?: Prisma.UserOrderByWithRelationInput;
+    user?: User;
   }) {
     return this.prisma.user.findMany({
       skip,
       take,
       cursor,
       where: {
-        ...where,
+        id: { not: user?.id },
+        username: {
+          contains: 'vit',
+        },
         visibility: 'PUBLIC',
         isActive: true,
       },
       orderBy,
-      select: {},
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        visibility: true,
+      },
     });
   }
 

@@ -179,7 +179,18 @@ export class AuthService {
         throw new UnauthorizedException('User account is inactive');
       }
 
-      return await this.generateTokens(user.id, userAgent, ipAddress);
+      const token = await this.generateTokens(user.id, userAgent, ipAddress);
+
+      return {
+        ...token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          role: user.role,
+        },
+      };
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||

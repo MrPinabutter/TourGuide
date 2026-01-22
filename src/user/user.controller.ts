@@ -8,7 +8,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Prisma, User, UserVisibility } from 'generated/prisma';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserService } from './user.service';
@@ -29,12 +29,18 @@ export class UserController {
   }
 
   @Get()
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'cursor', required: false })
+  @ApiQuery({ name: 'orderBy', required: false })
+  @ApiQuery({ name: 'where', required: false })
   async getAllUsers(
     @Query('skip') skip = 0,
     @Query('take') take = 10,
     @Query('cursor') cursor: Prisma.UserWhereUniqueInput,
-    @Query('where') where: Prisma.UserWhereInput,
     @Query('orderBy') orderBy: Prisma.UserOrderByWithRelationInput,
+    @Query('where') where: Prisma.UserWhereInput,
+    @CurrentUser() user: User,
   ) {
     return this.userService.getAllUsers({
       skip: Number(skip),
@@ -42,6 +48,7 @@ export class UserController {
       cursor,
       where,
       orderBy,
+      user,
     });
   }
 
